@@ -1,0 +1,20 @@
+{
+  "name": "wechat-monitor",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test --no-warnings --loader ts-node/esm tests/*.test.ts",
+    "launcher": "node --no-warnings --loader ts-node/esm launcher.ts",
+    "start": "node --no-warnings --loader ts-node/esm monitor.ts",
+    "dev": "node --no-warnings --loader ts-node/esm monitor.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
+    "openai": "^6.34.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "noEmit": true,
+    "outDir": "./dist",
+    "skipLibCheck": true
+  },
+  "include": ["*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
