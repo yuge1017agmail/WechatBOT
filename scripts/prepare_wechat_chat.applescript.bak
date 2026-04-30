@@ -1,0 +1,119 @@
+on focusWeChatGlobalSearchField()
+  tell application "System Events"
+    tell process "WeChat"
+      if not (exists front window) then error "未找到微信窗口，无法聚焦搜索框。"
+
+      set windowPosition to position of front window
+      set windowLeft to item 1 of windowPosition
+      set windowTop to item 2 of windowPosition
+
+      -- Cmd+F can be context-sensitive when a chat is already open. Click the
+      -- global conversation search field directly so repeated sends to the
+      -- same chat do not leave focus in an in-chat search state.
+      click at {windowLeft + 265, windowTop + 65}
+      delay 0.1
+      click at {windowLeft + 265, windowTop + 65}
+      delay 0.2
+    end tell
+  end tell
+end focusWeChatGlobalSearchField
+
+on focusWeChatInputArea()
+  tell application "System Events"
+    tell process "WeChat"
+      if not (exists front window) then error "未找到微信窗口，无法聚焦输入框。"
+
+      set windowPosition to position of front window
+      set windowSize to size of front window
+      set windowLeft to item 1 of windowPosition
+      set windowTop to item 2 of windowPosition
+      set windowWidth to item 1 of windowSize
+      set windowHeight to item 2 of windowSize
+
+      set inputX to round (windowLeft + (windowWidth * 0.58))
+      set inputY to round (windowTop + windowHeight - 35)
+      click at {inputX, inputY}
+      delay 0.2
+    end tell
+  end tell
+end focusWeChatInputArea
+
+on clickFirstSearchResult()
+  tell application "System Events"
+    tell process "WeChat"
+      if not (exists front window) then error "未找到微信窗口，无法选择搜索结果。"
+
+      set windowPosition to position of front window
+      set windowLeft to item 1 of windowPosition
+      set windowTop to item 2 of windowPosition
+
+      -- Do not press Return here. If the search field failed to receive focus,
+      -- Return would send the pasted chat name as a real message. A mouse click
+      -- on the first search result is safer: a failed search focus will not
+      -- submit the accidental draft.
+      click at {windowLeft + 205, windowTop + 140}
+      delay 0.6
+    end tell
+  end tell
+end clickFirstSearchResult
+
+on run argv
+  if (count of argv) < 1 then error "Usage: prepare_wechat_chat.applescript <chatName>"
+
+  set chatName to item 1 of argv
+  set originalClipboard to the clipboard
+
+  try
+    tell application "WeChat"
+      activate
+    end tell
+
+    delay 0.6
+
+    tell application "System Events"
+      if UI elements enabled is false then error "System Events 未获得辅助功能权限，请在系统设置中授权。"
+      if not (exists process "WeChat") then error "未检测到 WeChat 进程，请先登录并打开微信桌面版。"
+
+      tell process "WeChat"
+        set frontmost to true
+
+        key code 53
+        delay 0.1
+      end tell
+    end tell
+
+    my focusWeChatGlobalSearchField()
+
+    tell application "System Events"
+      tell process "WeChat"
+        keystroke "a" using command down
+        delay 0.1
+        key code 51
+        delay 0.1
+
+        set the clipboard to chatName
+        keystroke "v" using command down
+        delay 0.8
+      end tell
+    end tell
+
+    my clickFirstSearchResult()
+
+    tell application "System Events"
+      tell process "WeChat"
+        key code 53
+        delay 0.1
+      end tell
+    end tell
+
+    my focusWeChatInputArea()
+
+    set the clipboard to originalClipboard
+    return "ok"
+  on error errMsg number errNum
+    try
+      set the clipboard to originalClipboard
+    end try
+    error "WeChat prepare automation failed (" & errNum & "): " & errMsg
+  end try
+end run

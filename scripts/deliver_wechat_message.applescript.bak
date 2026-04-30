@@ -1,0 +1,123 @@
+on compactText(theText)
+  set oldDelimiters to AppleScript's text item delimiters
+  set AppleScript's text item delimiters to {space, tab, return, linefeed}
+  set textParts to text items of (theText as text)
+  set AppleScript's text item delimiters to ""
+  set compactedText to textParts as text
+  set AppleScript's text item delimiters to oldDelimiters
+  return compactedText
+end compactText
+
+on comparisonProbe(theText)
+  set compactedText to my compactText(theText)
+  if compactedText is "" then error "回复内容为空，无法发送。"
+  if (length of compactedText) > 40 then
+    return text 1 thru 40 of compactedText
+  end if
+  return compactedText
+end comparisonProbe
+
+on focusWeChatInputArea()
+  tell application "System Events"
+    tell process "WeChat"
+      if not (exists front window) then error "未找到微信窗口，无法聚焦输入框。"
+
+      set windowPosition to position of front window
+      set windowSize to size of front window
+      set windowLeft to item 1 of windowPosition
+      set windowTop to item 2 of windowPosition
+      set windowWidth to item 1 of windowSize
+      set windowHeight to item 2 of windowSize
+
+      -- WeChat's input toolbar sits above the actual text entry area. Clicking
+      -- too high can hit the toolbar (emoji/file/screenshot) and make Cmd+V a
+      -- no-op, so aim low inside the blank text-entry band.
+      set inputX to round (windowLeft + (windowWidth * 0.58))
+      set inputY to round (windowTop + windowHeight - 35)
+      click at {inputX, inputY}
+      delay 0.2
+    end tell
+  end tell
+end focusWeChatInputArea
+
+on verifyInputContainsMessage(messageText)
+  set expectedProbe to my comparisonProbe(messageText)
+  set the clipboard to ""
+
+  tell application "System Events"
+    tell process "WeChat"
+      keystroke "a" using command down
+      delay 0.1
+      keystroke "c" using command down
+      delay 0.2
+    end tell
+  end tell
+
+  set copiedText to the clipboard as text
+  set copiedProbe to my compactText(copiedText)
+  if copiedProbe does not contain expectedProbe then
+    error "输入框粘贴校验失败，焦点可能不在微信输入框。"
+  end if
+end verifyInputContainsMessage
+
+on run argv
+  if (count of argv) < 2 then error "Usage: deliver_wechat_message.applescript <messageText> <sendMode>"
+
+  set messageText to item 1 of argv
+  set sendMode to item 2 of argv
+  set originalClipboard to the clipboard
+
+  try
+    tell application "WeChat"
+      activate
+    end tell
+
+    delay 0.2
+
+    tell application "System Events"
+      if UI elements enabled is false then error "System Events 未获得辅助功能权限，请在系统设置中授权。"
+      if not (exists process "WeChat") then error "未检测到 WeChat 进程，请先登录并打开微信桌面版。"
+
+      tell process "WeChat"
+        set frontmost to true
+        key code 53
+        delay 0.1
+      end tell
+    end tell
+
+    my focusWeChatInputArea()
+
+    set the clipboard to messageText
+    tell application "System Events"
+      tell process "WeChat"
+        keystroke "a" using command down
+        delay 0.1
+        key code 51
+        delay 0.1
+        keystroke "v" using command down
+        delay 0.3
+      end tell
+    end tell
+
+    my verifyInputContainsMessage(messageText)
+
+    tell application "System Events"
+      tell process "WeChat"
+        if sendMode is "send" then
+          key code 36
+          delay 0.3
+        else
+          key code 124
+        end if
+      end tell
+    end tell
+
+    set the clipboard to originalClipboard
+    return "ok"
+  on error errMsg number errNum
+    try
+      set the clipboard to originalClipboard
+    end try
+    error "WeChat delivery automation failed (" & errNum & "): " & errMsg
+  end try
+end run

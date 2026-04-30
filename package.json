@@ -1,6 +1,6 @@
 {
   "name": "wechat-monitor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "test": "node --test --no-warnings --loader ts-node/esm tests/*.test.ts",
